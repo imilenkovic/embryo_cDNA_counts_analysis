@@ -1,0 +1,44 @@
+#Get the full list of stable IDs (gene versions) from the .count file
+cut -f1 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode01_hits_stableID.txt
+
+#Get the gene names of the stable IDs in biomart (https://www.ensembl.org/biomart/)
+#The file that will contain stable IDs, gene versions and gene names will be named mart_export.txt
+
+#Move it to working folder
+mv /home/imilenkovic/Downloads/mart_export.txt .
+
+#Rename the file
+mv mart_export.txt barcode01_geneStableID_version_geneName.txt
+
+#Grep onyl Rpls from the full list of hits (or Rps in the second iteration)
+grep Rpl barcode01_geneStableID_version_geneName.txt > barcode04_Rpl_extracted_full.txt
+
+#Get only the stable IDs versions from  the previous file
+cut -f2 barcode04_Rpl_extracted_full.txt > Rpl_stableID_only.txt
+
+#Extract the Rpl hits from the .counts file
+grep -f ../Rpl_stableID_only.txt 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode01_Rpl_stableID_counts.txt
+
+#Remove the pseudogenes
+sed '/-ps/d' barcode01_Rpl_stableID_counts.txt > barcode01_Rpl_stableID_counts.txt
+
+#Continue in R
+
+#Read the input files - one with IDs and counts, and the other one with IDs and gene names
+x <- read.delim("/home/imilenkovic/Windows/Bioinfo/embryo_cDNA_nanopore_counts_analysis/barcode04/barcode04_Rps_stableID_counts.txt", header=F)
+y <- read.delim("/home/imilenkovic/Windows/Bioinfo/embryo_cDNA_nanopore_counts_analysis/Rps_extracted_full_curated.txt", header=F)
+
+library(plyr)
+
+  colnames(x) <- c("TranscriptID", "Count")
+  colnames(y) <- c("GeneID", "TranscriptID", "Name")
+  joined<-join(x,y)
+  head(joined)
+ 
+ #Write to file for the corresponding barcode, repeat for all files
+  write.csv(joined, file = "barcode04.Rps.counts.geneName.csv")
+  
+  #Get the number of reads from .bam files
+  samtools view -c SAMPLE.bam
+  
+  #To get the CPM, divide the number of reads by 1000000, and then divide the count with this number
