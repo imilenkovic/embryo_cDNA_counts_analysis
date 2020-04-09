@@ -1,5 +1,5 @@
 #Get the full list of stable IDs (gene versions) from the .count file
-cut -f1 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode01_hits_stableID.txt
+cut -f1 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode04_hits_stableID.txt
 
 #Get the gene names of the stable IDs in biomart (https://www.ensembl.org/biomart/)
 #The file that will contain stable IDs, gene versions and gene names will be named mart_export.txt
@@ -8,19 +8,19 @@ cut -f1 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode01_hits_stableID.
 mv /home/imilenkovic/Downloads/mart_export.txt .
 
 #Rename the file
-mv mart_export.txt barcode01_geneStableID_version_geneName.txt
+mv mart_export.txt barcode04_geneStableID_version_geneName.txt
 
 #Grep onyl Rpls from the full list of hits (or Rps in the second iteration)
-grep Rpl barcode01_geneStableID_version_geneName.txt > barcode04_Rpl_extracted_full.txt
+grep Rpl barcode04_geneStableID_version_geneName.txt > barcode04_Rpl_extracted_full.txt
 
 #Get only the stable IDs versions from  the previous file
 cut -f2 barcode04_Rpl_extracted_full.txt > Rpl_stableID_only.txt
 
 #Extract the Rpl hits from the .counts file
-grep -f ../Rpl_stableID_only.txt 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode01_Rpl_stableID_counts.txt
+grep -f ../Rpl_stableID_only.txt 20200214_2003_MN22127_FAN03724_50d38c20.count > barcode04_Rpl_stableID_counts.txt
 
 #Remove the pseudogenes
-sed '/-ps/d' barcode01_Rpl_stableID_counts.txt > barcode01_Rpl_stableID_counts.txt
+sed '/-ps/d' barcode04_Rpl_stableID_counts.txt > barcode04_Rpl_stableID_counts.txt
 
 #Continue in R
 
@@ -42,3 +42,85 @@ library(plyr)
   samtools view -c SAMPLE.bam
   
   #To get the CPM, divide the number of reads by 1000000, and then divide the count with this number
+  
+  
+#For building the heatmaps:
+
+#1 - Scaled by row
+
+library(ComplexHeatmap)
+library(circlize)
+
+test <- read.csv("C:\\Users\\imilenkovic\\Desktop\\CPM_All_barcodes_Rpl_Rps_name_counts.csv",row.names = 1)
+input <- as.matrix(t(test))
+
+input_l <- log(input+1)
+input_sl <-scale(input_l)
+d <- as.data.frame(input_sl)
+d[is.na(d)] <- -2
+
+pdf("heatmap.embryo.cDNA.ribosomal.proteins.ivan.by.column.pdf",height=16,width=16)
+Heatmap(d, name = "z-scale log(TPM)", 
+        #col = colorRamp2(c(-3,0,4), c("cadetblue3","floralwhite", "maroon4"),space = "RGB"), 
+        cluster_rows = FALSE, 
+        col = colorRamp2(c(-2,-1,0,1,2), c("#2c7bb6","#abd9e9","floralwhite","#fdae61", "#d7191c"),space = "RGB"),
+        #clustering_distance_columns = "pearson",
+        cluster_columns = TRUE,
+        column_title = "Ribosomal proteins", 
+        column_title_gp = gpar(fontsize = 20, fontface = "bold"),
+        column_names_gp = gpar(fontsize = 10, fontface = "bold"),
+        row_title = "Developmental stages", row_title_rot = 90,
+        row_title_gp = gpar(fontsize = 15, fontface = "bold"),
+        #cluster_rows = FALSE,
+        show_row_names = TRUE,
+        row_names_gp = gpar(fontsize = 15), #row names size
+        #column_order = 1:dim(data4)[2],#Keep the column order, make clustering FALSE for this
+        row_dend_side = "right", #Dendogram on the right side
+        #row_order = 1:dim(data4)[1], #Keep the row order, make clustering FALSE for this
+        show_column_dend = TRUE, #
+        column_dend_side = "top",
+        column_names_side = "bottom",
+        #split = tissue2, #Splitting by Class
+        gap = unit(1, "mm"), #Gap
+        #right_annotation=row_ha,
+)
+dev.off()
+
+#2 Scaled by column:
+
+test <- read.csv("C:\\Users\\imilenkovic\\Desktop\\CPM_All_barcodes_Rpl_Rps_name_counts.csv",row.names = 1)
+input <- as.matrix(t(test))
+
+input_s<-scale(input)
+input_t<-t(input)
+input_tl<-log(input_t+1)
+input_tls<-scale(input_tl)
+input_tlst<-t(input_tls)
+
+
+pdf("heatmap.embryo.cDNA.ribosomal.proteins.ivan.by.column.pdf",height=16,width=16)
+Heatmap(input_tlst, name = "z-scale log(TPM)", 
+        #col = colorRamp2(c(-3,0,4), c("cadetblue3","floralwhite", "maroon4"),space = "RGB"), 
+        cluster_rows = FALSE, 
+        col = colorRamp2(c(-2,-1,0,1,2), c("#2c7bb6","#abd9e9","floralwhite","#fdae61", "#d7191c"),space = "RGB"),
+        #clustering_distance_columns = "pearson",
+        cluster_columns = TRUE,
+        column_title = "Ribosomal proteins", 
+        column_title_gp = gpar(fontsize = 20, fontface = "bold"),
+        column_names_gp = gpar(fontsize = 10, fontface = "bold"),
+        row_title = "Developmental stages", row_title_rot = 90,
+        row_title_gp = gpar(fontsize = 15, fontface = "bold"),
+        #cluster_rows = FALSE,
+        show_row_names = TRUE,
+        row_names_gp = gpar(fontsize = 15), #row names size
+        #column_order = 1:dim(data4)[2],#Keep the column order, make clustering FALSE for this
+        row_dend_side = "right", #Dendogram on the right side
+        #row_order = 1:dim(data4)[1], #Keep the row order, make clustering FALSE for this
+        show_column_dend = TRUE, #
+        column_dend_side = "top",
+        column_names_side = "bottom",
+        #split = tissue2, #Splitting by Class
+        gap = unit(1, "mm"), #Gap
+        #right_annotation=row_ha,
+)
+dev.off()
